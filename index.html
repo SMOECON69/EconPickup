@@ -504,6 +504,17 @@
     font-weight:700;
     color:var(--amber);
   }
+  .calling-badge{
+    display:inline-block;
+    margin-left:6px;
+    font-size:11px;
+    font-weight:700;
+    color:var(--ok);
+    background:rgba(79,174,134,0.15);
+    padding:2px 8px;
+    border-radius:999px;
+    white-space:nowrap;
+  }
   .status-btn{
     border:none;
     border-radius:999px;
@@ -944,18 +955,18 @@ const TR = {
     tab_admin: 'หลังบ้าน',
     step_info: 'ข้อมูล', step_date: 'เลือกวัน', step_ticket: 'ใบคิว',
     step1_title: 'แบบฟอร์มลงทะเบียนรับสินค้า',
-    step1_warning: '⚠️ ระบบจะตรวจสอบชื่อ-นามสกุลและรหัสนักศึกษากับข้อมูลตอนสั่งพรีออร์เดอร์ ถ้ากรอกไม่ตรงกัน <strong>จะไม่สามารถรับคิวได้</strong> กรุณาตรวจสอบให้ถูกต้องก่อนกดถัดไป',
+    step1_warning: '⚠️ กรุณากรอกชื่อและรหัสนักศึกษาให้ตรงกับข้อมูลพรีออร์เดอร์ หากไม่ตรงกัน <strong>จะไม่สามารถรับคิวได้</strong>',
     label_name: 'ชื่อ-นามสกุล', ph_name: 'เช่น ณัฐชา ศรีสุวรรณ',
     label_studentid: 'รหัสนักศึกษา', ph_studentid: 'เช่น 6405012345',
     label_phone: 'เบอร์โทรศัพท์', ph_phone: 'เช่น 089-123-4567',
     btn_next: 'ถัดไป →',
     alert_fill_all: 'กรุณากรอกข้อมูลให้ครบถ้วนก่อนดำเนินการต่อ',
     checking: 'กำลังตรวจสอบ...',
-    alert_not_found: 'ไม่พบรหัสนักศึกษานี้ในระบบใบเสร็จพรีออร์เดอร์ กรุณาตรวจสอบรหัสนักศึกษาอีกครั้ง หากคุณสั่งพรีออร์เดอร์ไว้จริงแต่ระบบหาไม่เจอ กรุณาติดต่อทีมงานสโมสรนักศึกษาคณะเศรษฐศาสตร์',
-    alert_name_mismatch: 'ชื่อ-นามสกุลไม่ตรงกับข้อมูลที่มีอยู่ในระบบสำหรับรหัสนักศึกษานี้ กรุณาตรวจสอบชื่อ-นามสกุลและรหัสนักศึกษาให้ตรงกับตอนสั่งพรีออร์เดอร์ หรือติดต่อทีมงานหากคิดว่าเป็นความผิดพลาด',
+    alert_not_found: 'ไม่พบรหัสนักศึกษานี้ในระบบ กรุณาตรวจสอบอีกครั้ง หรือติดต่อทีมงานสโมสรนักศึกษาคณะเศรษฐศาสตร์',
+    alert_name_mismatch: 'ชื่อไม่ตรงกับข้อมูลของรหัสนักศึกษานี้ในระบบ กรุณาตรวจสอบอีกครั้ง หรือติดต่อทีมงานหากคิดว่าคลาดเคลื่อน',
     alert_connection_error: 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ กรุณาลองใหม่อีกครั้ง',
     step2_title: 'เลือกวันมารับของ',
-    step2_hint: 'คิวจะรันตามลำดับการจองของแต่ละวัน เลือกวันที่สะดวกได้เลย',
+    step2_hint: 'กรุณาเลือกวันที่สะดวกสำหรับการรับสินค้า',
     slot_available: 'ว่าง',
     btn_back: '← ย้อนกลับ', btn_getqueue: 'รับคิว →',
     booking: 'กำลังจองคิว...',
@@ -968,8 +979,8 @@ const TR = {
     label_size: 'ไซส์', label_qty: 'จำนวน',
     receipt_total: 'รวมใบเสร็จนี้', grand_total: 'ยอดรวมทั้งหมด',
     no_items_title: 'ไม่พบรายการสินค้าในระบบ',
-    no_items_note: 'ถ้าคุณสั่งพรีออร์เดอร์ไว้แต่ไม่เห็นรายการ ลองเช็ครหัสนักศึกษาที่กรอกอีกครั้ง หรือแจ้งทีมงานหน้างานตอนมารับของ',
-    ticket_note: 'แคปหน้าจอนี้ไว้ แล้วแสดงกับพี่ ๆ ทีมหลังบ้านตอนมารับของ ทีมงานจะเช็คใบเสร็จให้ตามชื่อ/รหัสนักศึกษาเลย',
+    no_items_note: 'หากสั่งพรีออร์เดอร์ไว้แต่ไม่พบรายการ กรุณาแจ้งเจ้าหน้าที่หน้างาน',
+    ticket_note: 'กรุณาบันทึกภาพหน้าจอนี้ไว้ และแสดงต่อเจ้าหน้าที่เมื่อมารับสินค้า',
     btn_restart: 'จองให้อีกคน / ทำรายการใหม่',
     gate_title: 'สำหรับทีมงานหลังบ้านเท่านั้น',
     gate_hint: 'เข้าสู่ระบบด้วยอีเมล/รหัสผ่านแอดมินที่ตั้งไว้ใน Firebase',
@@ -1034,7 +1045,7 @@ const TR = {
     btn_check_queue: 'เช็คคิวปัจจุบัน',
     btn_cancel_queue: 'ยกเลิกคิว',
     cancelling: 'กำลังยกเลิก...',
-    confirm_cancel_queue: 'ยืนยันยกเลิกคิว? คุณจะเสียคิวที่จองไว้ ต้องจองใหม่อีกครั้งถ้าเปลี่ยนใจ',
+    confirm_cancel_queue: 'ยืนยันยกเลิกคิว? หากเปลี่ยนใจภายหลังจะต้องทำการจองใหม่',
     cancel_failed: 'ยกเลิกคิวไม่สำเร็จ: ',
   },
   en: {
@@ -1042,18 +1053,18 @@ const TR = {
     tab_customer: 'Customer', tab_admin: 'Staff',
     step_info: 'Info', step_date: 'Date', step_ticket: 'Ticket',
     step1_title: 'Pickup Registration Form',
-    step1_warning: '⚠️ Your name and student ID will be checked against your preorder record. If they don\'t match, <strong>you won\'t be able to get a queue number.</strong> Please double-check before continuing.',
+    step1_warning: '⚠️ Your name and student ID must match your preorder record. <strong>Mismatched details will prevent queue registration.</strong>',
     label_name: 'Full Name', ph_name: 'e.g. Nathcha Srisuwan',
     label_studentid: 'Student ID', ph_studentid: 'e.g. 6405012345',
     label_phone: 'Phone Number', ph_phone: 'e.g. 089-123-4567',
     btn_next: 'Next →',
     alert_fill_all: 'Please fill in all fields before continuing.',
     checking: 'Checking...',
-    alert_not_found: 'This student ID was not found in the preorder receipt system. Please double-check your student ID. If you did preorder but the system can\'t find your record, please contact the Economics Student Union team.',
-    alert_name_mismatch: 'The name does not match our records for this student ID. Please check that your name and student ID match what you used at preorder, or contact the team if you think this is a mistake.',
+    alert_not_found: 'This student ID was not found in the system. Please check again, or contact the Economics Student Union team.',
+    alert_name_mismatch: 'The name does not match this student ID on record. Please check again, or contact the team if this seems incorrect.',
     alert_connection_error: 'A connection error occurred. Please try again.',
     step2_title: 'Select Pickup Date',
-    step2_hint: 'Queue numbers are assigned in the order you book for each date — pick whichever date works for you.',
+    step2_hint: 'Please select your preferred pickup date.',
     slot_available: 'Available:',
     btn_back: '← Back', btn_getqueue: 'Get Queue →',
     booking: 'Booking...',
@@ -1066,8 +1077,8 @@ const TR = {
     label_size: 'Size', label_qty: 'Qty',
     receipt_total: 'Receipt total', grand_total: 'Total',
     no_items_title: 'No items found in the system',
-    no_items_note: 'If you preordered but don\'t see your items, double-check the student ID you entered, or let staff know when you arrive.',
-    ticket_note: 'Take a screenshot of this and show it to staff when you come to pick up your items — they\'ll verify your receipt by name/student ID.',
+    no_items_note: 'If you preordered but don\'t see any items, please contact staff on site.',
+    ticket_note: 'Please take a screenshot of this and show it to staff when picking up your items.',
     btn_restart: 'Book for someone else / Start over',
     gate_title: 'Staff Access Only',
     gate_hint: 'Sign in with the admin email/password set up in Firebase',
@@ -1132,7 +1143,7 @@ const TR = {
     btn_check_queue: 'Check Current Queue',
     btn_cancel_queue: 'Cancel Queue',
     cancelling: 'Cancelling...',
-    confirm_cancel_queue: 'Confirm cancelling your queue? You will lose your booked slot and need to book again if you change your mind.',
+    confirm_cancel_queue: 'Confirm cancelling your queue? You will need to book again if you change your mind.',
     cancel_failed: 'Failed to cancel: ',
   }
 };
@@ -1193,9 +1204,6 @@ let bookingEnabled = true;
 let bookingClosedMessage = '';
 let ticketShowItems = false;
 let ticketShowQueueCheck = false;
-let staffRole = (function(){
-  try{ return localStorage.getItem('econPickupStaffRole') || null; }catch(e){ return null; }
-})();
 
 /* ---------------- Helpers ---------------- */
 function escapeHtml(s){
@@ -1505,6 +1513,21 @@ function attachCustomerHandlers(){
           return;
         }
         form.name = name; form.studentId = sid; form.phone = phone; form.receipts = record.receipts || [];
+
+        // เช็คว่าคนนี้เคยจองคิวไปแล้วจากเครื่อง/อุปกรณ์อื่นหรือยัง ถ้าเคย
+        // ให้ดึงใบคิวเดิมมาโชว์เลย ไม่ต้องให้จองซ้ำ (ทำให้เช็คคิวได้จาก
+        // อุปกรณ์ไหนก็ได้ ไม่ใช่แค่เครื่องที่จองตอนแรก)
+        const bookingSnap = await getDoc(doc(db, 'bookings', sid));
+        if(bookingSnap.exists()){
+          const b = bookingSnap.data();
+          form.dateId = b.dateId;
+          form.queue = b.queue;
+          step = 3;
+          saveTicketToStorage();
+          renderCustomer();
+          return;
+        }
+
         step = 2;
         renderCustomer();
       }catch(e){
@@ -1624,118 +1647,7 @@ function renderAdminGate(){
 /* ---------------- Render: admin ---------------- */
 function renderAdmin(){
   if(!adminAuthed){ renderAdminGate(); return; }
-  if(!staffRole){ renderRoleSelect(); return; }
-  if(staffRole==='overview'){ renderAdminOverview(); return; }
-  renderCounterView(staffRole);
-}
-
-function roleLabel(role){
-  if(role==='counter1') return t('role_counter1');
-  if(role==='counter2') return t('role_counter2');
-  return t('role_overview');
-}
-
-/* ---------------- Render: role select screen ---------------- */
-function renderRoleSelect(){
-  const el = document.getElementById('adminView');
-  el.innerHTML = `
-    <div class="gate-wrap">
-      <div class="card-paper" style="text-align:center;">
-        <h2>${t('role_select_title')}</h2>
-        <p class="hint">${t('role_select_hint')}</p>
-        <div class="role-btn-group">
-          <button class="role-btn" data-role="counter1">${t('role_counter1')}</button>
-          <button class="role-btn" data-role="counter2">${t('role_counter2')}</button>
-          <button class="role-btn role-btn-overview" data-role="overview">${t('role_overview')}</button>
-        </div>
-        <button class="gate-logout" id="btnRoleLogout" style="margin-top:18px;">${t('btn_logout')}</button>
-      </div>
-    </div>`;
-  document.querySelectorAll('[data-role]').forEach(btn=>{
-    btn.onclick = () => {
-      staffRole = btn.getAttribute('data-role');
-      try{ localStorage.setItem('econPickupStaffRole', staffRole); }catch(e){}
-      renderAdmin();
-    };
-  });
-  const logout = document.getElementById('btnRoleLogout');
-  if(logout) logout.onclick = () => { signOut(auth); };
-}
-
-function changeRole(){
-  staffRole = null;
-  try{ localStorage.removeItem('econPickupStaffRole'); }catch(e){}
-  renderAdmin();
-}
-
-/* ---------------- Render: counter view (เคาน์เตอร์ 1 / เคาน์เตอร์ 2) ---------------- */
-function renderCounterView(role){
-  const el = document.getElementById('adminView');
-  const myKey = role==='counter1' ? 'counter1Serving' : 'counter2Serving';
-  const otherKey = role==='counter1' ? 'counter2Serving' : 'counter1Serving';
-  const otherRole = role==='counter1' ? 'counter2' : 'counter1';
-
-  el.innerHTML = `
-    <div class="counter-header">
-      <div class="counter-role-badge">${roleLabel(role)}</div>
-      <div style="display:flex; gap:10px; align-items:center;">
-        <button class="gate-logout" id="btnChangeRole">${t('btn_change_role')}</button>
-        <button class="gate-logout" id="btnCounterLogout">${t('btn_logout')}</button>
-      </div>
-    </div>
-    <div class="date-pills-row" id="counterDatePills"></div>
-    <div id="counterMain"></div>`;
-
-  document.getElementById('btnChangeRole').onclick = changeRole;
-  document.getElementById('btnCounterLogout').onclick = () => { signOut(auth); };
-
-  const pillsEl = document.getElementById('counterDatePills');
-  pillsEl.innerHTML = PICKUP_DATES.map(d=>`
-    <button class="date-pill-btn ${adminSelectedDate===d.id?'active':''}" data-date="${d.id}">${lang==='en'?d.labelEn:d.labelTh}</button>
-  `).join('');
-  pillsEl.querySelectorAll('[data-date]').forEach(btn=>{
-    btn.onclick = () => { adminSelectedDate = btn.getAttribute('data-date'); renderCounterView(role); };
-  });
-
-  const mainEl = document.getElementById('counterMain');
-  if(adminSelectedDate==='all'){
-    mainEl.innerHTML = `<div class="now-serving-panel ns-empty">${t('now_serving_pick_date')}</div>`;
-    return;
-  }
-
-  const myNumber = counterServingForDate(adminSelectedDate, myKey);
-  const otherNumber = counterServingForDate(adminSelectedDate, otherKey);
-  mainEl.innerHTML = `
-    <div class="counter-main-panel">
-      <div class="cmp-label">${t('now_serving_label')}</div>
-      <div class="cmp-number mono">#${String(myNumber).padStart(3,'0')}</div>
-      <div class="cmp-controls">
-        <button class="btn btn-ghost" id="btnCallPrevC">${t('btn_call_prev')}</button>
-        <button class="btn btn-amber" id="btnCallNextC">${t('btn_call_next')}</button>
-      </div>
-    </div>
-    <div class="other-counter-note">${t('other_counter_label')(roleLabel(otherRole))}: <span class="mono">#${String(otherNumber).padStart(3,'0')}</span></div>`;
-
-  document.getElementById('btnCallNextC').onclick = async () => {
-    const btn = document.getElementById('btnCallNextC');
-    btn.disabled = true;
-    try{
-      await callNextAtCounter(adminSelectedDate, myKey);
-    }catch(e){
-      alert(e.message || (t('call_next_failed') + (e.message||'')));
-    }
-    if(document.getElementById('btnCallNextC')) document.getElementById('btnCallNextC').disabled = false;
-  };
-  document.getElementById('btnCallPrevC').onclick = async () => {
-    const btn = document.getElementById('btnCallPrevC');
-    btn.disabled = true;
-    try{
-      await callPrevAtCounter(adminSelectedDate, myKey);
-    }catch(e){
-      alert(t('call_next_failed') + (e.message||''));
-    }
-    if(document.getElementById('btnCallPrevC')) document.getElementById('btnCallPrevC').disabled = false;
-  };
+  renderAdminOverview();
 }
 
 /* ---------------- Render: overview (แดชบอร์ดเต็มรูปแบบ) ---------------- */
@@ -1751,9 +1663,7 @@ function renderAdminOverview(){
     <div class="admin-subtabs">
       <button class="subtab-btn ${adminSubView==='queue'?'active':''}" data-subtab="queue">${t('tab_queue')(bookedCount)}</button>
       <button class="subtab-btn ${adminSubView==='registry'?'active':''}" data-subtab="registry">${t('tab_registry')(customers.length)}</button>
-      <div class="counter-role-badge" style="margin-left:auto;">${roleLabel('overview')}</div>
-      <button class="gate-logout" id="btnChangeRole">${t('btn_change_role')}</button>
-      <button class="gate-logout" id="btnAdminLogout">${t('btn_logout')}</button>
+      <button class="gate-logout" id="btnAdminLogout" style="margin-left:auto;">${t('btn_logout')}</button>
     </div>
     <div id="adminSubRoot"></div>`;
   el.innerHTML = statusBarHtml + subTabsHtml;
@@ -1762,8 +1672,6 @@ function renderAdminOverview(){
   });
   const logout = document.getElementById('btnAdminLogout');
   if(logout) logout.onclick = () => { signOut(auth); };
-  const changeRoleBtn = document.getElementById('btnChangeRole');
-  if(changeRoleBtn) changeRoleBtn.onclick = changeRole;
   const toggleBtn = document.getElementById('btnToggleBooking');
   if(toggleBtn){
     toggleBtn.onclick = async () => {
@@ -1814,7 +1722,13 @@ function renderAdminQueue(){
       </td>
       <td class="mono">${escapeHtml(c.phone)}</td>
       <td>${dateLabel(c.dateId)}</td>
-      <td><span class="queue-tag">#${String(c.queue).padStart(3,'0')}</span></td>
+      <td><span class="queue-tag">#${String(c.queue).padStart(3,'0')}</span>${(() => {
+        const c1 = counterServingForDate(c.dateId,'counter1Serving');
+        const c2 = counterServingForDate(c.dateId,'counter2Serving');
+        if(c.queue===c1) return `<span class="calling-badge">🔔 ${t('role_counter1')}</span>`;
+        if(c.queue===c2) return `<span class="calling-badge">🔔 ${t('role_counter2')}</span>`;
+        return '';
+      })()}</td>
       <td>${c.receipts.length ? c.receipts.map(r=>`<span class="receipt-chip">${escapeHtml(r.no)} · ${t('items_count')(r.items.length)}</span>`).join('') : `<span class="cust-sub">${t('no_receipt_linked')}</span>`}</td>
       <td class="mono">${fmtBaht(customerTotal(c))}</td>
       <td><button class="status-btn ${c.status}" data-toggle="${c.studentId}">${c.status==='pending'?t('status_pending'):t('status_done')}</button></td>
@@ -2277,6 +2191,7 @@ onSnapshot(collection(db, 'queueCounters'), (snap)=>{
   counterCache = {};
   snap.forEach(d=> counterCache[d.id] = d.data());
   if(mode==='customer' && (step===2 || step===3)) renderCustomer();
+  if(mode==='admin' && adminAuthed) renderAdmin();
 }, (err)=> console.error('queueCounters listener error', err));
 
 // "สวิตช์ปิด/เปิดรับจองคิว" — อ่านได้แม้ไม่ล็อกอิน (ลูกค้าต้องเห็นสถานะนี้)
