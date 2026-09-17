@@ -236,6 +236,12 @@
   }
   .date-opt:hover{border-color:var(--amber-deep);}
   .date-opt.selected{border-color:var(--amber-deep); background:var(--paper-dim);}
+  .date-opt.closed{
+    opacity:0.55;
+    cursor:not-allowed;
+    background:#f5f5f5;
+  }
+  .date-opt.closed:hover{ border-color:var(--paper-line); }
   .date-opt .d-main{font-weight:600;font-size:15px;}
   .date-opt .d-sub{font-size:12px;color:var(--text-onpaper-muted);}
   .slot-badge{
@@ -247,6 +253,7 @@
     color:var(--amber-deep);
   }
   .slot-badge.low{background:rgba(226,73,107,0.18);color:var(--rose);}
+  .slot-badge.closed-badge{background:#e2e2e2; color:#8a8a8a;}
 
   /* Ticket stub */
   .ticket{
@@ -749,6 +756,41 @@
   }
   .booking-status-bar .status-open{color:var(--ok);}
   .booking-status-bar .status-closed{color:var(--rose);}
+  .schedule-close-panel{
+    background:rgba(250,243,246,0.06);
+    border-radius:8px;
+    padding:12px 16px;
+    margin-bottom:14px;
+    font-size:13px;
+  }
+  .scp-label{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; }
+  .scp-current{ font-size:13px; color:var(--amber); margin-bottom:10px; font-weight:600; }
+  .scp-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .scp-row input[type=datetime-local]{
+    padding:8px 10px;
+    border:1.5px solid rgba(250,243,246,0.15);
+    background:rgba(250,243,246,0.05);
+    color:var(--text-onink);
+    border-radius:5px;
+    font-family:'Kanit',sans-serif;
+    font-size:13px;
+  }
+  .prep-total-banner{
+    background:var(--paper-dim);
+    color:#5c1738;
+    font-weight:700;
+    text-align:center;
+    padding:12px 14px;
+    border-radius:7px;
+    margin-bottom:16px;
+    font-size:14px;
+  }
+  .prep-subtotal-row td{
+    background:var(--paper-dim);
+    font-weight:700;
+    color:#5c1738;
+    font-size:12.5px;
+  }
   .now-serving-panel{
     background:var(--ink);
     border-radius:8px;
@@ -1019,6 +1061,21 @@ const TR = {
     alert_save_failed: 'บันทึกไม่สำเร็จ: ', alert_status_failed: 'เปลี่ยนสถานะไม่สำเร็จ: ',
     booking_closed_title: 'ปิดรับจองคิวชั่วคราว',
     booking_closed_default_msg: 'ขณะนี้ปิดรับจองคิวรับของชั่วคราว กรุณาติดตามประกาศจากทีมงานอีกครั้ง',
+    date_closed_badge: 'ปิดรับจองแล้ว',
+    date_closed_error: 'วันที่นี้ปิดรับจองคิวแล้ว กรุณาเลือกวันอื่น',
+    date_status_label: 'สถานะรับจองวันนี้',
+    btn_close_date: 'ปิดรับจองวันนี้',
+    btn_open_date: 'เปิดรับจองวันนี้',
+    confirm_close_date: 'ยืนยันปิดรับจองคิวของวันนี้? ลูกค้าจะเลือกวันนี้ไม่ได้จนกว่าจะเปิดอีกครั้ง (คนที่จองไปแล้วยังเห็นใบคิวเดิมได้ตามปกติ)',
+    toggle_date_failed: 'เปลี่ยนสถานะรับจองไม่สำเร็จ: ',
+    btn_prep_summary: 'สรุปสินค้าที่ต้องเตรียม',
+    prep_summary_title: (dateLbl)=>`สรุปสินค้าที่ต้องเตรียม — ${dateLbl}`,
+    prep_total_label: (n,c)=>`รวมทั้งหมด ${n} ชิ้น จาก ${c} คิว`,
+    th_product: 'สินค้า',
+    th_size_breakdown: 'แยกตามไซส์',
+    th_prep_total: 'รวม (ชิ้น)',
+    prep_empty: 'ยังไม่มีรายการสินค้าสำหรับวันนี้',
+    prep_subtotal_label: (name)=>`รวม ${name} ทั้งหมด`,
     booking_status_label: 'สถานะรับจองคิว', status_open: 'เปิดรับจอง', status_closed: 'ปิดรับจอง',
     btn_close_booking: 'ปิดรับจองคิว', btn_open_booking: 'เปิดรับจองคิว',
     confirm_close_booking: 'ยืนยันปิดรับจองคิว? ลูกค้าจะไม่สามารถจองคิวใหม่ได้จนกว่าจะเปิดอีกครั้ง (คนที่จองไปแล้วยังเห็นใบคิวเดิมได้ตามปกติ)',
@@ -1031,6 +1088,11 @@ const TR = {
     btn_change_role: 'เปลี่ยนบทบาท',
     other_counter_label: (name)=>`${name} กำลังเรียก`,
     no_more_to_call: 'ไม่มีคิวถัดไปให้เรียกแล้ว (ยังไม่มีใครจองคิวเพิ่ม)',
+    schedule_close_label: 'ตั้งเวลาปิดรับจองอัตโนมัติ',
+    schedule_close_current: (dt)=>`ตั้งไว้ปิดอัตโนมัติ: ${dt}`,
+    btn_set_schedule: 'ตั้งเวลา',
+    btn_clear_schedule: 'ยกเลิกกำหนดเวลา',
+    schedule_set_failed: 'ตั้งเวลาไม่สำเร็จ: ',
     now_serving_panel_title: 'ควบคุมจอเรียกคิว',
     now_serving_label: 'กำลังเรียกคิวที่',
     btn_call_next: 'เรียกคิวถัดไป →',
@@ -1117,6 +1179,21 @@ const TR = {
     alert_save_failed: 'Save failed: ', alert_status_failed: 'Status update failed: ',
     booking_closed_title: 'Booking Temporarily Closed',
     booking_closed_default_msg: 'Booking is temporarily closed. Please check announcements from the team for updates.',
+    date_closed_badge: 'Closed',
+    date_closed_error: 'This date is closed for booking. Please choose another date.',
+    date_status_label: 'Booking status for this date',
+    btn_close_date: 'Close This Date',
+    btn_open_date: 'Open This Date',
+    confirm_close_date: 'Confirm closing booking for this date? Customers won\'t be able to select it until reopened. (Existing tickets remain visible as normal.)',
+    toggle_date_failed: 'Failed to update date status: ',
+    btn_prep_summary: 'Prep Summary',
+    prep_summary_title: (dateLbl)=>`Items to Prepare — ${dateLbl}`,
+    prep_total_label: (n,c)=>`Total ${n} items across ${c} orders`,
+    th_product: 'Product',
+    th_size_breakdown: 'By Size',
+    th_prep_total: 'Total (pcs)',
+    prep_empty: 'No items for this date yet',
+    prep_subtotal_label: (name)=>`Total ${name}`,
     booking_status_label: 'Booking Status', status_open: 'Open', status_closed: 'Closed',
     btn_close_booking: 'Close Booking', btn_open_booking: 'Open Booking',
     confirm_close_booking: 'Confirm closing booking? Customers won\'t be able to book new slots until reopened. (Existing tickets remain visible as normal.)',
@@ -1129,6 +1206,11 @@ const TR = {
     btn_change_role: 'Change Role',
     other_counter_label: (name)=>`${name} is calling`,
     no_more_to_call: 'No more numbers to call yet (no new bookings since the last call).',
+    schedule_close_label: 'Schedule automatic closing time',
+    schedule_close_current: (dt)=>`Scheduled to close at: ${dt}`,
+    btn_set_schedule: 'Set Time',
+    btn_clear_schedule: 'Clear Schedule',
+    schedule_set_failed: 'Failed to set schedule: ',
     now_serving_panel_title: 'Queue Display Control',
     now_serving_label: 'Now Serving',
     btn_call_next: 'Call Next →',
@@ -1200,8 +1282,6 @@ let adminSearch = '';
 let registrySearch = '';
 let adminAuthed = false;
 let gateError = '';
-let bookingEnabled = true;
-let bookingClosedMessage = '';
 let ticketShowItems = false;
 let ticketShowQueueCheck = false;
 
@@ -1238,8 +1318,31 @@ function combinedServingForDate(dateId){
   const d = counterCache[dateId] || {};
   return Math.max(d.counter1Serving || 0, d.counter2Serving || 0);
 }
+function isDateBookingClosed(dateId){
+  return !!(counterCache[dateId] && counterCache[dateId].bookingClosed);
+}
+function toDatetimeLocalValue(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  const pad = (n)=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 function normalizeName(s){
   return (s||'').trim().replace(/\s+/g,' ').toLowerCase();
+}
+
+/* ---------------- Product name translation (for display only) ---------------- */
+const PRODUCT_NAME_EN = {
+  'เสื้อโปโลเทา': 'Econ Freshmen Polo Shirt',
+  'เสื้อเชิ้ตชมพู': 'Econ Shirt',
+  'กางเกงวอร์ม': 'Sweatpant',
+  'เสื้อกิจกรรม 2026': 'Econ 2026 Shirt',
+  'หัวเข็มขัด': 'Belt Buckle',
+  'ตุ้งติ้ง': 'Econ Pin',
+};
+function productName(name){
+  if(lang==='en' && PRODUCT_NAME_EN[name]) return PRODUCT_NAME_EN[name];
+  return name;
 }
 function findCustomerByStudentId(sid){
   return customers.find(c=>c.studentId === sid.trim());
@@ -1271,6 +1374,10 @@ async function bookPickupSlot({ dateId, studentId, name, phone }){
     if (bookingSnap.exists()){
       const existing = bookingSnap.data();
       throw new Error(t('already_booked')(dateLabel(existing.dateId), String(existing.queue).padStart(3,'0')));
+    }
+
+    if (counterSnap.exists() && counterSnap.data().bookingClosed){
+      throw new Error(t('date_closed_error'));
     }
 
     const currentCount = counterSnap.exists() ? counterSnap.data().count : 0;
@@ -1334,22 +1441,6 @@ async function callPrevAtCounter(dateId, counterKey){
 /* ---------------- Render: customer ---------------- */
 function renderCustomer(){
   const el = document.getElementById('customerView');
-
-  if(!bookingEnabled && step !== 3){
-    el.innerHTML = `
-      <div class="wizard-wrap">
-        <div class="gate-wrap" style="margin-top:20px;">
-          <div class="card-paper" style="text-align:center;">
-            <div class="gate-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </div>
-            <h2>${t('booking_closed_title')}</h2>
-            <p class="hint">${bookingClosedMessage ? escapeHtml(bookingClosedMessage) : t('booking_closed_default_msg')}</p>
-          </div>
-        </div>
-      </div>`;
-    return;
-  }
   const stepsHtml = `
     <div class="steps-track">
       ${[1,2,3].map((n,i)=>`
@@ -1401,15 +1492,18 @@ function renderCustomer(){
             const left = remainingForDate(d.id);
             const low = left <= 5;
             const selected = form.dateId===d.id;
+            const closed = isDateBookingClosed(d.id);
             const dLabel = lang==='en' ? d.labelEn : d.labelTh;
             const wLabel = lang==='en' ? d.weekdayEn : d.weekdayTh;
             return `
-              <div class="date-opt ${selected?'selected':''}" data-date="${d.id}">
+              <div class="date-opt ${selected?'selected':''} ${closed?'closed':''}" ${closed?'':`data-date="${d.id}"`}>
                 <div>
                   <div class="d-main">${dLabel}</div>
                   <div class="d-sub">${lang==='en' ? wLabel : 'วัน'+wLabel}</div>
                 </div>
-                <div class="slot-badge ${low?'low':''}">${t('slot_available')} ${left}/${d.cap}</div>
+                ${closed
+                  ? `<div class="slot-badge closed-badge">${t('date_closed_badge')}</div>`
+                  : `<div class="slot-badge ${low?'low':''}">${t('slot_available')} ${left}/${d.cap}</div>`}
               </div>`;
           }).join('')}
         </div>
@@ -1432,7 +1526,7 @@ function renderCustomer(){
           ${r.items.map(it=>`
             <div class="item-line">
               <div>
-                <div class="il-name">${escapeHtml(it.product)}</div>
+                <div class="il-name">${escapeHtml(productName(it.product))}</div>
                 <div class="il-meta">${t('label_size')} ${escapeHtml(it.size||'-')} · ${t('label_qty')} ${it.qty}${it.note ? ` · <span style="color:var(--amber-deep);font-weight:600;">${escapeHtml(it.note)}</span>` : ''}</div>
               </div>
               <div class="il-price mono">${fmtBaht(it.qty*it.price)}</div>
@@ -1654,11 +1748,6 @@ function renderAdmin(){
 function renderAdminOverview(){
   const el = document.getElementById('adminView');
   const bookedCount = customers.filter(c=>c.dateId).length;
-  const statusBarHtml = `
-    <div class="booking-status-bar">
-      <span>${t('booking_status_label')}: <strong class="${bookingEnabled?'status-open':'status-closed'}">${bookingEnabled ? t('status_open') : t('status_closed')}</strong></span>
-      <button id="btnToggleBooking" class="btn ${bookingEnabled?'btn-ghost-danger':'btn-amber'}">${bookingEnabled ? t('btn_close_booking') : t('btn_open_booking')}</button>
-    </div>`;
   const subTabsHtml = `
     <div class="admin-subtabs">
       <button class="subtab-btn ${adminSubView==='queue'?'active':''}" data-subtab="queue">${t('tab_queue')(bookedCount)}</button>
@@ -1666,26 +1755,12 @@ function renderAdminOverview(){
       <button class="gate-logout" id="btnAdminLogout" style="margin-left:auto;">${t('btn_logout')}</button>
     </div>
     <div id="adminSubRoot"></div>`;
-  el.innerHTML = statusBarHtml + subTabsHtml;
+  el.innerHTML = subTabsHtml;
   document.querySelectorAll('[data-subtab]').forEach(btn=>{
     btn.onclick = () => { adminSubView = btn.getAttribute('data-subtab'); renderAdminOverview(); };
   });
   const logout = document.getElementById('btnAdminLogout');
   if(logout) logout.onclick = () => { signOut(auth); };
-  const toggleBtn = document.getElementById('btnToggleBooking');
-  if(toggleBtn){
-    toggleBtn.onclick = async () => {
-      const newState = !bookingEnabled;
-      if(!newState && !confirm(t('confirm_close_booking'))) return;
-      toggleBtn.disabled = true;
-      try{
-        await setDoc(doc(db, 'settings', 'booking'), { enabled: newState, message: bookingClosedMessage || '' }, { merge: true });
-      }catch(e){
-        alert(t('toggle_booking_failed') + (e.message||''));
-        toggleBtn.disabled = false;
-      }
-    };
-  }
 
   if(adminSubView==='queue') renderAdminQueue();
   else renderAdminRegistry();
@@ -1736,6 +1811,18 @@ function renderAdminQueue(){
     </tr>
   `).join('') : `<tr><td colspan="8" class="empty-row">${t('no_match')}</td></tr>`;
 
+  const dateStatusHtml = adminSelectedDate!=='all' ? (() => {
+    const closed = isDateBookingClosed(adminSelectedDate);
+    return `
+    <div class="booking-status-bar">
+      <span>${t('date_status_label')}: <strong class="${closed?'status-closed':'status-open'}">${closed ? t('status_closed') : t('status_open')}</strong></span>
+      <div style="display:flex; gap:8px;">
+        <button id="btnPrepSummary" class="btn btn-ghost">${t('btn_prep_summary')}</button>
+        <button id="btnToggleDateClosed" class="btn ${closed?'btn-amber':'btn-ghost-danger'}">${closed ? t('btn_open_date') : t('btn_close_date')}</button>
+      </div>
+    </div>`;
+  })() : '';
+
   const nowServingHtml = adminSelectedDate!=='all' ? `
     <div class="now-serving-panel dual">
       <div class="ns-title">${t('now_serving_panel_title')}</div>
@@ -1758,6 +1845,7 @@ function renderAdminQueue(){
     <div class="admin-grid">
       ${railHtml}
       <div class="admin-main">
+        ${dateStatusHtml}
         ${nowServingHtml}
         <div class="admin-header">
           <div class="search-box">
@@ -1803,6 +1891,25 @@ function renderAdminQueue(){
       if(document.body.contains(btn)) btn.disabled = false;
     };
   });
+  const toggleDateBtn = document.getElementById('btnToggleDateClosed');
+  if(toggleDateBtn){
+    toggleDateBtn.onclick = async () => {
+      const closed = isDateBookingClosed(adminSelectedDate);
+      const newState = !closed;
+      if(newState && !confirm(t('confirm_close_date'))) return;
+      toggleDateBtn.disabled = true;
+      try{
+        await setDoc(doc(db, 'queueCounters', adminSelectedDate), { bookingClosed: newState }, { merge: true });
+      }catch(e){
+        alert(t('toggle_date_failed') + (e.message||''));
+      }
+      if(document.body.contains(toggleDateBtn)) toggleDateBtn.disabled = false;
+    };
+  }
+  const prepSummaryBtn = document.getElementById('btnPrepSummary');
+  if(prepSummaryBtn){
+    prepSummaryBtn.onclick = () => openPrepSummaryModal(adminSelectedDate);
+  }
 
   attachAdminHandlers();
 }
@@ -1914,7 +2021,7 @@ function openDetailModal(studentId){
       ${r.items.map(it=>`
         <div class="item-line">
           <div>
-            <div class="il-name">${escapeHtml(it.product)}</div>
+            <div class="il-name">${escapeHtml(productName(it.product))}</div>
             <div class="il-meta">${t('label_size')} ${escapeHtml(it.size||'-')} · ${t('label_qty')} ${it.qty}${it.note ? ` · <span style="color:var(--amber-deep);font-weight:600;">${escapeHtml(it.note)}</span>` : ''}</div>
           </div>
           <div class="il-price mono">${fmtBaht(it.qty*it.price)}</div>
@@ -1963,6 +2070,86 @@ function openDetailModal(studentId){
 
 function closeModal(){
   document.getElementById('modalRoot').innerHTML = '';
+}
+
+/* ---------------- Prep summary (สรุปสินค้าที่ต้องเตรียม) ---------------- */
+function computePrepSummary(dateId){
+  const groups = {}; // "product|||note" -> { product, note, total, bySize: {size: qty} }
+  let totalItems = 0;
+  let orderCount = 0;
+  customers.filter(c=>c.dateId===dateId).forEach(c=>{
+    orderCount++;
+    c.receipts.forEach(r=>{
+      r.items.forEach(it=>{
+        const noteKey = it.note ? it.note.trim() : '';
+        const groupKey = it.product + '|||' + noteKey;
+        if(!groups[groupKey]) groups[groupKey] = { product: it.product, note: noteKey, total:0, bySize:{} };
+        groups[groupKey].total += it.qty;
+        const sizeKey = it.size || '-';
+        groups[groupKey].bySize[sizeKey] = (groups[groupKey].bySize[sizeKey]||0) + it.qty;
+        totalItems += it.qty;
+      });
+    });
+  });
+  return { groups, totalItems, orderCount };
+}
+
+function openPrepSummaryModal(dateId){
+  const { groups, totalItems, orderCount } = computePrepSummary(dateId);
+  const byProduct = {};
+  Object.values(groups).forEach(g=>{
+    if(!byProduct[g.product]) byProduct[g.product] = [];
+    byProduct[g.product].push(g);
+  });
+  const productNames = Object.keys(byProduct).sort();
+  const root = document.getElementById('modalRoot');
+
+  let rowsHtml = '';
+  if(productNames.length){
+    productNames.forEach(p=>{
+      const noteGroups = byProduct[p].sort((a,b)=> (a.note||'').localeCompare(b.note||''));
+      const productTotal = noteGroups.reduce((s,g)=>s+g.total,0);
+      noteGroups.forEach(g=>{
+        const sizeBreakdown = Object.keys(g.bySize).sort().map(sz=>`${sz==='-'?'':sz+': '}${g.bySize[sz]}`).join(' · ');
+        const label = g.note ? `${escapeHtml(productName(p))} — <span style="color:var(--amber-deep);">${escapeHtml(g.note)}</span>` : escapeHtml(productName(p));
+        rowsHtml += `
+          <tr>
+            <td>${label}</td>
+            <td class="mono" style="font-size:12.5px;">${escapeHtml(sizeBreakdown)}</td>
+            <td class="mono" style="text-align:right;font-weight:700;">${g.total}</td>
+          </tr>`;
+      });
+      if(noteGroups.length > 1){
+        rowsHtml += `
+          <tr class="prep-subtotal-row">
+            <td colspan="2">${t('prep_subtotal_label')(escapeHtml(productName(p)))}</td>
+            <td class="mono" style="text-align:right;font-weight:700;">${productTotal}</td>
+          </tr>`;
+      }
+    });
+  } else {
+    rowsHtml = `<tr><td colspan="3" class="empty-row">${t('prep_empty')}</td></tr>`;
+  }
+
+  root.innerHTML = `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal detail-modal" id="modalBox">
+        <h3>${t('prep_summary_title')(dateLabel(dateId))}</h3>
+        <div class="prep-total-banner">${t('prep_total_label')(totalItems, orderCount)}</div>
+        <table>
+          <thead>
+            <tr><th>${t('th_product')}</th><th>${t('th_size_breakdown')}</th><th style="text-align:right;">${t('th_prep_total')}</th></tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="btnCloseDetail">${t('btn_close')}</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('modalOverlay').onclick = (e) => { if(e.target.id==='modalOverlay') closeModal(); };
+  document.getElementById('btnCloseDetail').onclick = closeModal;
 }
 
 /* ---------------- Add receipt modal ---------------- */
@@ -2193,21 +2380,6 @@ onSnapshot(collection(db, 'queueCounters'), (snap)=>{
   if(mode==='customer' && (step===2 || step===3)) renderCustomer();
   if(mode==='admin' && adminAuthed) renderAdmin();
 }, (err)=> console.error('queueCounters listener error', err));
-
-// "สวิตช์ปิด/เปิดรับจองคิว" — อ่านได้แม้ไม่ล็อกอิน (ลูกค้าต้องเห็นสถานะนี้)
-// เขียนได้เฉพาะแอดมิน ผ่านปุ่มใน renderAdmin() เท่านั้น
-onSnapshot(doc(db, 'settings', 'booking'), (snap)=>{
-  if(snap.exists()){
-    const d = snap.data();
-    bookingEnabled = d.enabled !== false;
-    bookingClosedMessage = d.message || '';
-  } else {
-    bookingEnabled = true;
-    bookingClosedMessage = '';
-  }
-  if(mode==='customer') renderCustomer();
-  if(mode==='admin' && adminAuthed) renderAdmin();
-}, (err)=> console.error('settings listener error', err));
 
 let unsubCustomers = null;
 let unsubBookings = null;
