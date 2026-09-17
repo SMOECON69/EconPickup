@@ -1009,7 +1009,7 @@ const TR = {
     alert_connection_error: 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ กรุณาลองใหม่อีกครั้ง',
     step2_title: 'เลือกวันมารับของ',
     step2_hint: 'กรุณาเลือกวันที่สะดวกสำหรับการรับสินค้า',
-    slot_available: 'ว่าง',
+    slot_available: 'จองแล้ว',
     btn_back: '← ย้อนกลับ', btn_getqueue: 'รับคิว →',
     booking: 'กำลังจองคิว...',
     alert_booking_failed: 'จองคิวไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
@@ -1127,7 +1127,7 @@ const TR = {
     alert_connection_error: 'A connection error occurred. Please try again.',
     step2_title: 'Select Pickup Date',
     step2_hint: 'Please select your preferred pickup date.',
-    slot_available: 'Available:',
+    slot_available: 'Booked:',
     btn_back: '← Back', btn_getqueue: 'Get Queue →',
     booking: 'Booking...',
     alert_booking_failed: 'Booking failed. Please try again.',
@@ -1490,6 +1490,7 @@ function renderCustomer(){
         <div class="date-grid">
           ${PICKUP_DATES.map(d=>{
             const left = remainingForDate(d.id);
+            const booked = d.cap - left;
             const low = left <= 5;
             const selected = form.dateId===d.id;
             const closed = isDateBookingClosed(d.id);
@@ -1503,7 +1504,7 @@ function renderCustomer(){
                 </div>
                 ${closed
                   ? `<div class="slot-badge closed-badge">${t('date_closed_badge')}</div>`
-                  : `<div class="slot-badge ${low?'low':''}">${t('slot_available')} ${left}/${d.cap}</div>`}
+                  : `<div class="slot-badge ${low?'low':''}">${t('slot_available')} ${booked}/${d.cap}</div>`}
               </div>`;
           }).join('')}
         </div>
