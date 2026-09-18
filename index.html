@@ -1000,7 +1000,7 @@ const TR = {
     step_info: 'ข้อมูล', step_date: 'เลือกวัน', step_ticket: 'ใบคิว',
     step1_title: 'แบบฟอร์มลงทะเบียนรับสินค้า',
     step1_warning: '⚠️ กรุณากรอกชื่อและรหัสนักศึกษาให้ตรงกับข้อมูลพรีออร์เดอร์ หากไม่ตรงกัน <strong>จะไม่สามารถรับคิวได้</strong>',
-    label_name: 'ชื่อ-นามสกุล', ph_name: 'เช่น อดัม สมิท',
+    label_name: 'ชื่อ-นามสกุล', ph_name: 'เช่น สมชาย รักชาติ',
     label_studentid: 'รหัสนักศึกษา', ph_studentid: 'เช่น 69160XXX',
     label_phone: 'เบอร์โทรศัพท์', ph_phone: 'เช่น 089XXXXXXX',
     btn_next: 'ถัดไป →',
@@ -1122,7 +1122,7 @@ const TR = {
     step_info: 'Info', step_date: 'Date', step_ticket: 'Ticket',
     step1_title: 'Pickup Registration Form',
     step1_warning: '⚠️ Your name and student ID must match your preorder record. <strong>Mismatched details will prevent queue registration.</strong>',
-    label_name: 'Full Name', ph_name: 'e.g. Adam Smith',
+    label_name: 'Full Name', ph_name: 'e.g. Somchai Rakchat',
     label_studentid: 'Student ID', ph_studentid: 'e.g. 69160XXX',
     label_phone: 'Phone Number', ph_phone: 'e.g. 089XXXXXXX',
     btn_next: 'Next →',
@@ -2488,8 +2488,19 @@ async function fetchAdminData(){
 function startAdminDataPolling(){
   stopAdminDataPolling(); // กันไม่ให้มี interval ซ้อนกันถ้าเรียกซ้ำ
   fetchAdminData(); // โหลดทันทีตอน login/reload
-  adminRefreshTimer = setInterval(fetchAdminData, ADMIN_REFRESH_INTERVAL_MS);
+  adminRefreshTimer = setInterval(()=>{
+    if(document.hidden) return; // แท็บถูกซ่อน/สลับไปแท็บอื่น/minimize → ข้ามรอบนี้ ไม่อ่านข้อมูลทิ้งเปล่าๆ
+    fetchAdminData();
+  }, ADMIN_REFRESH_INTERVAL_MS);
 }
+
+// เมื่อสลับกลับมาที่แท็บนี้อีกครั้งหลังจากถูกซ่อนไว้ ให้ดึงข้อมูลใหม่ทันที 1 ครั้ง
+// (ไม่ต้องรอครบรอบ 25 วิ) เพื่อให้ admin เห็นข้อมูลล่าสุดทันทีที่กลับมาดู
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden && adminAuthed && adminRefreshTimer){
+    fetchAdminData();
+  }
+});
 
 function stopAdminDataPolling(){
   if(adminRefreshTimer){ clearInterval(adminRefreshTimer); adminRefreshTimer = null; }
