@@ -533,6 +533,7 @@
   }
   .status-btn.pending{background:rgba(255,62,147,0.18);color:var(--amber);}
   .status-btn.done{background:rgba(79,174,134,0.22);color:var(--ok);}
+  .status-btn.cancelled{background:rgba(226,73,107,0.22);color:var(--rose);}
 
   .empty-row{
     text-align:center;
@@ -914,6 +915,7 @@
   }
   .booked-badge.yes{background:rgba(79,174,134,0.2);color:var(--ok);}
   .booked-badge.no{background:rgba(250,243,246,0.1);color:var(--text-muted);}
+  .booked-badge.cancelled{background:rgba(226,73,107,0.2);color:var(--rose);}
 </style>
 </head>
 <body>
@@ -951,8 +953,8 @@
    ============================================================================ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, runTransaction,
-  serverTimestamp, collection, onSnapshot, arrayUnion
+  getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, runTransaction,
+  serverTimestamp, collection, query, limit, onSnapshot, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -998,7 +1000,7 @@ const TR = {
     step_info: 'ข้อมูล', step_date: 'เลือกวัน', step_ticket: 'ใบคิว',
     step1_title: 'แบบฟอร์มลงทะเบียนรับสินค้า',
     step1_warning: '⚠️ กรุณากรอกชื่อและรหัสนักศึกษาให้ตรงกับข้อมูลพรีออร์เดอร์ หากไม่ตรงกัน <strong>จะไม่สามารถรับคิวได้</strong>',
-    label_name: 'ชื่อ-นามสกุล', ph_name: 'เช่น สมชาย รักชาติ',
+    label_name: 'ชื่อ-นามสกุล', ph_name: 'เช่น อดัม สมิท',
     label_studentid: 'รหัสนักศึกษา', ph_studentid: 'เช่น 69160XXX',
     label_phone: 'เบอร์โทรศัพท์', ph_phone: 'เช่น 089XXXXXXX',
     btn_next: 'ถัดไป →',
@@ -1009,7 +1011,8 @@ const TR = {
     alert_connection_error: 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ กรุณาลองใหม่อีกครั้ง',
     step2_title: 'เลือกวันมารับของ',
     step2_hint: 'กรุณาเลือกวันที่สะดวกสำหรับการรับสินค้า',
-    slot_available: 'จองแล้ว',
+    slot_available: 'ว่าง',
+    slot_booked_label: 'จองแล้ว',
     btn_back: '← ย้อนกลับ', btn_getqueue: 'รับคิว →',
     booking: 'กำลังจองคิว...',
     alert_booking_failed: 'จองคิวไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
@@ -1036,7 +1039,10 @@ const TR = {
     btn_add_receipt: 'เพิ่มใบเสร็จ',
     th_customer: 'ลูกค้า', th_phone: 'เบอร์โทร', th_date: 'วันรับของ', th_queue: 'คิว',
     th_receipts: 'ใบเสร็จ', th_total: 'ยอดรวม', th_status: 'สถานะ',
-    status_pending: 'รอรับ', status_done: 'รับแล้ว',
+    status_pending: 'รอรับ', status_done: 'รับแล้ว', status_cancelled: 'ยกเลิก',
+    confirm_mark_done: 'ยืนยันว่าลูกค้ามารับของแล้ว?',
+    confirm_call_next_unreceived: (q)=>`คิวที่ #${q} ยังไม่ได้กดว่ารับของแล้ว ยืนยันจะเรียกคิวถัดไปเลยมั้ย?`,
+    cancelled_badge: (date,q)=>`ยกเลิกแล้ว · ${date} · #${q}`,
     no_receipt_linked: 'ยังไม่ผูกใบเสร็จ', btn_view_receipt: 'ดูใบเสร็จ',
     no_match: 'ไม่พบรายการที่ตรงกับคำค้นหา',
     queue_note: 'ข้อมูลเชื่อมต่อกับ Firestore แบบเรียลไทม์แล้ว — ใครก็ตามที่จองคิวจากมือถือของเขาเอง จะขึ้นในตารางนี้ทันทีโดยไม่ต้องรีเฟรชหน้า',
@@ -1116,7 +1122,7 @@ const TR = {
     step_info: 'Info', step_date: 'Date', step_ticket: 'Ticket',
     step1_title: 'Pickup Registration Form',
     step1_warning: '⚠️ Your name and student ID must match your preorder record. <strong>Mismatched details will prevent queue registration.</strong>',
-    label_name: 'Full Name', ph_name: 'e.g. Somchai Rakchat',
+    label_name: 'Full Name', ph_name: 'e.g. Adam Smith',
     label_studentid: 'Student ID', ph_studentid: 'e.g. 69160XXX',
     label_phone: 'Phone Number', ph_phone: 'e.g. 089XXXXXXX',
     btn_next: 'Next →',
@@ -1127,7 +1133,7 @@ const TR = {
     alert_connection_error: 'A connection error occurred. Please try again.',
     step2_title: 'Select Pickup Date',
     step2_hint: 'Please select your preferred pickup date.',
-    slot_available: 'Booked:',
+    slot_available: 'Available:',
     btn_back: '← Back', btn_getqueue: 'Get Queue →',
     booking: 'Booking...',
     alert_booking_failed: 'Booking failed. Please try again.',
@@ -1154,7 +1160,10 @@ const TR = {
     btn_add_receipt: 'Add Receipt',
     th_customer: 'Customer', th_phone: 'Phone', th_date: 'Pickup Date', th_queue: 'Queue',
     th_receipts: 'Receipts', th_total: 'Total', th_status: 'Status',
-    status_pending: 'Pending', status_done: 'Picked Up',
+    status_pending: 'Pending', status_done: 'Picked Up', status_cancelled: 'Cancelled',
+    confirm_mark_done: 'Confirm that the customer has received their order?',
+    confirm_call_next_unreceived: (q)=>`Queue #${q} hasn't been marked as received yet. Call the next number anyway?`,
+    cancelled_badge: (date,q)=>`Cancelled · ${date} · #${q}`,
     no_receipt_linked: 'No receipts linked', btn_view_receipt: 'View Receipts',
     no_match: 'No matching results',
     queue_note: 'Connected to Firestore in real time — anyone who books from their own phone appears in this table instantly, no refresh needed.',
@@ -1304,12 +1313,15 @@ function dateLabel(dateId){
   return lang==='en' ? `${d.labelEn} (${d.weekdayEn})` : `${d.labelTh} (${d.weekdayTh})`;
 }
 function queueCountFor(dateId){
-  return customers.filter(c=>c.dateId===dateId).length;
+  return customers.filter(c=>c.dateId===dateId && c.status!=='cancelled').length;
 }
 function remainingForDate(dateId){
   const d = PICKUP_DATES.find(p=>p.id===dateId);
   const used = (counterCache[dateId] && counterCache[dateId].count) || 0;
   return d ? d.cap - used : 0;
+}
+function usedForDate(dateId){
+  return (counterCache[dateId] && counterCache[dateId].count) || 0;
 }
 function counterServingForDate(dateId, counterKey){
   return (counterCache[dateId] && counterCache[dateId][counterKey]) || 0;
@@ -1320,6 +1332,33 @@ function combinedServingForDate(dateId){
 }
 function isDateBookingClosed(dateId){
   return !!(counterCache[dateId] && counterCache[dateId].bookingClosed);
+}
+function statusLabel(status){
+  if(status==='done') return t('status_done');
+  if(status==='cancelled') return t('status_cancelled');
+  return t('status_pending');
+}
+async function toggleBookingStatus(sid, btnEl){
+  const c = customers.find(x=>x.studentId===sid);
+  if(!c) return false;
+  let newStatus;
+  if(c.status === 'done'){
+    newStatus = 'pending'; // ยกเลิกสถานะ "รับแล้ว" ไม่ต้องยืนยัน (แค่แก้ที่กดผิด)
+  } else {
+    // pending หรือ cancelled -> done ต้องยืนยันก่อนเสมอ (กันมือลั่น และ
+    // ถ้าเดิมเป็น cancelled การกดยืนยันตรงนี้จะลบสถานะยกเลิกออกไปในตัว)
+    if(!confirm(t('confirm_mark_done'))) return false;
+    newStatus = 'done';
+  }
+  if(btnEl) btnEl.disabled = true;
+  try{
+    await updateDoc(doc(db, 'bookings', sid), { status: newStatus });
+    return true;
+  }catch(e){
+    alert(t('alert_status_failed') + (e.message||''));
+    if(btnEl) btnEl.disabled = false;
+    return false;
+  }
 }
 function toDatetimeLocalValue(iso){
   if(!iso) return '';
@@ -1364,6 +1403,23 @@ function clearTicketFromStorage(){
    bookPickupSlot — Firestore transaction: การันตีไม่มี 2 คนได้คิวเดียวกัน
    ในวันเดียวกันเด็ดขาด แม้กดพร้อมกันเป็นร้อยคน
    ============================================================================ */
+/* ============================================================================
+   BookingBusinessError — ข้อผิดพลาดที่เกิดจากตรรกะทางธุรกิจ (จองไปแล้ว,
+   ปิดรับจองวันนี้, คิวหมด) ต่างจาก error ทางเทคนิค (เน็ตหลุด, contention
+   ตอนคนจองพร้อมกันจำนวนมาก) — แยกไว้เพื่อรู้ว่า error แบบไหนควร "retry
+   ให้อัตโนมัติ" (ทางเทคนิค) กับแบบไหนควร "แจ้งแล้วจบเลย" (ทางธุรกิจ)
+   ============================================================================ */
+class BookingBusinessError extends Error {}
+
+/* ============================================================================
+   bookPickupSlot — Firestore transaction: การันตีไม่มี 2 คนได้คิวเดียวกัน
+   ในวันเดียวกันเด็ดขาด แม้กดพร้อมกันเป็นร้อยคน (ดูรายละเอียดกลไกใน
+   booking-service.js ที่เคยส่งให้ก่อนหน้านี้ — โค้ดจริงอยู่ตรงนี้แล้ว)
+
+   รองรับกรณี "จองซ้อนทับคิวที่ถูกยกเลิกไปแล้ว" ด้วย: ถ้า booking เดิม
+   ของรหัสนักศึกษานี้มีสถานะ cancelled อยู่ ถือว่าจองใหม่ทับได้เลย
+   (ไม่ต้องลบ document เดิมออกก่อน)
+   ============================================================================ */
 async function bookPickupSlot({ dateId, studentId, name, phone }){
   const counterRef = doc(db, "queueCounters", dateId);
   const bookingRef = doc(db, "bookings", studentId);
@@ -1371,13 +1427,13 @@ async function bookPickupSlot({ dateId, studentId, name, phone }){
   return await runTransaction(db, async (tx) => {
     const [bookingSnap, counterSnap] = await Promise.all([tx.get(bookingRef), tx.get(counterRef)]);
 
-    if (bookingSnap.exists()){
+    if (bookingSnap.exists() && bookingSnap.data().status !== 'cancelled'){
       const existing = bookingSnap.data();
-      throw new Error(t('already_booked')(dateLabel(existing.dateId), String(existing.queue).padStart(3,'0')));
+      throw new BookingBusinessError(t('already_booked')(dateLabel(existing.dateId), String(existing.queue).padStart(3,'0')));
     }
 
     if (counterSnap.exists() && counterSnap.data().bookingClosed){
-      throw new Error(t('date_closed_error'));
+      throw new BookingBusinessError(t('date_closed_error'));
     }
 
     const currentCount = counterSnap.exists() ? counterSnap.data().count : 0;
@@ -1393,6 +1449,34 @@ async function bookPickupSlot({ dateId, studentId, name, phone }){
 
     return nextQueue;
   });
+}
+
+/* ============================================================================
+   bookPickupSlotWithRetry — ชั้นป้องกันเพิ่มเติมสำหรับวันจริงที่อาจมีคน
+   เข้าเว็บพร้อมกันหลายร้อยคน (500-600 คน) กดจองพร้อมกันในเวลาไล่เลี่ยกัน
+   ------------------------------------------------------------------------
+   Firestore transaction ที่ใช้ใน bookPickupSlot() การันตีความถูกต้อง
+   (ไม่มีทางได้เลขคิวซ้ำ) อยู่แล้วในตัว แม้จะมีคนกดพร้อมกันเป็นร้อยคน — แต่
+   ถ้าคนกดพร้อมกันเยอะมากๆในวินาทีเดียวกัน อาจมีบางคำขอ "ชนกัน" ต้อง
+   ลองใหม่ (Firestore SDK มี retry อัตโนมัติในตัวอยู่แล้วระดับหนึ่ง) ฟังก์ชัน
+   นี้เพิ่มการ retry อีกชั้นแบบ exponential backoff (รอนานขึ้นทีละรอบ)
+   เฉพาะ error ที่เป็นปัญหาทางเทคนิค/ชนกันชั่วคราวเท่านั้น — ถ้า error เป็น
+   เรื่องทางธุรกิจจริงๆ (จองไปแล้ว, ปิดรับจอง) จะไม่ retry แต่แจ้งทันที
+   ============================================================================ */
+async function bookPickupSlotWithRetry(params, maxAttempts=4){
+  let lastErr;
+  for(let attempt=0; attempt<maxAttempts; attempt++){
+    try{
+      return await bookPickupSlot(params);
+    }catch(e){
+      if(e instanceof BookingBusinessError) throw e;
+      lastErr = e;
+      if(attempt < maxAttempts-1){
+        await new Promise(r=>setTimeout(r, 300 * Math.pow(2, attempt))); // 300ms, 600ms, 1200ms
+      }
+    }
+  }
+  throw lastErr;
 }
 
 /* ============================================================================
@@ -1489,8 +1573,8 @@ function renderCustomer(){
         <p class="hint">${t('step2_hint')}</p>
         <div class="date-grid">
           ${PICKUP_DATES.map(d=>{
-            const left = remainingForDate(d.id);
-            const booked = d.cap - left;
+            const used = usedForDate(d.id);
+            const left = d.cap - used;
             const low = left <= 5;
             const selected = form.dateId===d.id;
             const closed = isDateBookingClosed(d.id);
@@ -1504,7 +1588,7 @@ function renderCustomer(){
                 </div>
                 ${closed
                   ? `<div class="slot-badge closed-badge">${t('date_closed_badge')}</div>`
-                  : `<div class="slot-badge ${low?'low':''}">${t('slot_available')} ${booked}/${d.cap}</div>`}
+                  : `<div class="slot-badge ${low?'low':''}">${t('slot_booked_label')} ${used}/${d.cap}</div>`}
               </div>`;
           }).join('')}
         </div>
@@ -1613,7 +1697,7 @@ function attachCustomerHandlers(){
         // ให้ดึงใบคิวเดิมมาโชว์เลย ไม่ต้องให้จองซ้ำ (ทำให้เช็คคิวได้จาก
         // อุปกรณ์ไหนก็ได้ ไม่ใช่แค่เครื่องที่จองตอนแรก)
         const bookingSnap = await getDoc(doc(db, 'bookings', sid));
-        if(bookingSnap.exists()){
+        if(bookingSnap.exists() && bookingSnap.data().status !== 'cancelled'){
           const b = bookingSnap.data();
           form.dateId = b.dateId;
           form.queue = b.queue;
@@ -1648,7 +1732,7 @@ function attachCustomerHandlers(){
       next2.disabled = true;
       next2.textContent = t('booking');
       try{
-        const queue = await bookPickupSlot({ dateId: form.dateId, studentId: form.studentId, name: form.name, phone: form.phone });
+        const queue = await bookPickupSlotWithRetry({ dateId: form.dateId, studentId: form.studentId, name: form.name, phone: form.phone });
         form.queue = queue;
         step = 3;
         saveTicketToStorage();
@@ -1677,7 +1761,7 @@ function attachCustomerHandlers(){
       cancelBtn.disabled = true;
       cancelBtn.textContent = t('cancelling');
       try{
-        await deleteDoc(doc(db, 'bookings', form.studentId));
+        await updateDoc(doc(db, 'bookings', form.studentId), { status: 'cancelled' });
         clearTicketFromStorage();
         ticketShowItems = false;
         ticketShowQueueCheck = false;
@@ -1748,7 +1832,7 @@ function renderAdmin(){
 /* ---------------- Render: overview (แดชบอร์ดเต็มรูปแบบ) ---------------- */
 function renderAdminOverview(){
   const el = document.getElementById('adminView');
-  const bookedCount = customers.filter(c=>c.dateId).length;
+  const bookedCount = customers.filter(c=>c.dateId && c.status!=='cancelled').length;
   const subTabsHtml = `
     <div class="admin-subtabs">
       <button class="subtab-btn ${adminSubView==='queue'?'active':''}" data-subtab="queue">${t('tab_queue')(bookedCount)}</button>
@@ -1807,7 +1891,7 @@ function renderAdminQueue(){
       })()}</td>
       <td>${c.receipts.length ? c.receipts.map(r=>`<span class="receipt-chip">${escapeHtml(r.no)} · ${t('items_count')(r.items.length)}</span>`).join('') : `<span class="cust-sub">${t('no_receipt_linked')}</span>`}</td>
       <td class="mono">${fmtBaht(customerTotal(c))}</td>
-      <td><button class="status-btn ${c.status}" data-toggle="${c.studentId}">${c.status==='pending'?t('status_pending'):t('status_done')}</button></td>
+      <td><button class="status-btn ${c.status}" data-toggle="${c.studentId}">${statusLabel(c.status)}</button></td>
       <td><button class="view-btn" data-view="${c.studentId}">${t('btn_view_receipt')}</button></td>
     </tr>
   `).join('') : `<tr><td colspan="8" class="empty-row">${t('no_match')}</td></tr>`;
@@ -1872,9 +1956,17 @@ function renderAdminQueue(){
 
   document.querySelectorAll('[data-call-next]').forEach(btn=>{
     btn.onclick = async () => {
+      const counterKey = btn.getAttribute('data-call-next');
+      const currentNo = counterServingForDate(adminSelectedDate, counterKey);
+      if(currentNo > 0){
+        const currentCustomer = customers.find(c=>c.dateId===adminSelectedDate && c.queue===currentNo);
+        if(currentCustomer && currentCustomer.status==='pending'){
+          if(!confirm(t('confirm_call_next_unreceived')(String(currentNo).padStart(3,'0')))) return;
+        }
+      }
       btn.disabled = true;
       try{
-        await callNextAtCounter(adminSelectedDate, btn.getAttribute('data-call-next'));
+        await callNextAtCounter(adminSelectedDate, counterKey);
       }catch(e){
         alert(e.message || (t('call_next_failed') + (e.message||'')));
       }
@@ -1929,7 +2021,7 @@ function renderAdminRegistry(){
         <div class="cust-sub mono">${escapeHtml(c.studentId)}</div>
       </td>
       <td class="mono">${escapeHtml(c.phone)}</td>
-      <td>${c.dateId ? `<span class="booked-badge yes">${t('booked_badge')(dateLabel(c.dateId), String(c.queue).padStart(3,'0'))}</span>` : `<span class="booked-badge no">${t('not_booked_badge')}</span>`}</td>
+      <td>${c.dateId ? (c.status==='cancelled' ? `<span class="booked-badge cancelled">${t('cancelled_badge')(dateLabel(c.dateId), String(c.queue).padStart(3,'0'))}</span>` : `<span class="booked-badge yes">${t('booked_badge')(dateLabel(c.dateId), String(c.queue).padStart(3,'0'))}</span>`) : `<span class="booked-badge no">${t('not_booked_badge')}</span>`}</td>
       <td>${c.receipts.length ? c.receipts.map(r=>`<span class="receipt-chip">${escapeHtml(r.no)} · ${t('items_count')(r.items.length)}</span>`).join('') : `<span class="cust-sub">${t('no_receipts_text')}</span>`}</td>
       <td class="mono">${fmtBaht(customerTotal(c))}</td>
       <td><button class="view-btn" data-view="${c.studentId}">${t('btn_view_receipt')}</button></td>
@@ -1987,19 +2079,7 @@ function attachAdminHandlers(){
     search.oninput = (e) => { adminSearch = e.target.value; renderAdmin(); };
   }
   document.querySelectorAll('[data-toggle]').forEach(btn=>{
-    btn.onclick = async () => {
-      const sid = btn.getAttribute('data-toggle');
-      const c = customers.find(x=>x.studentId===sid);
-      if(!c) return;
-      const newStatus = c.status==='pending' ? 'done' : 'pending';
-      btn.disabled = true;
-      try{
-        await updateDoc(doc(db, 'bookings', sid), { status: newStatus });
-      }catch(e){
-        alert(t('alert_status_failed') + (e.message||''));
-        btn.disabled = false;
-      }
-    };
+    btn.onclick = () => toggleBookingStatus(btn.getAttribute('data-toggle'), btn);
   });
   document.querySelectorAll('[data-view]').forEach(btn=>{
     btn.onclick = () => openDetailModal(btn.getAttribute('data-view'));
@@ -2040,7 +2120,7 @@ function openDetailModal(studentId){
             <div class="dh-name">${escapeHtml(c.name)}</div>
             <div class="dh-sub">${t('label_studentid')} ${escapeHtml(c.studentId)} · ${escapeHtml(c.phone)}<br>${c.dateId ? `${t('row_date')} ${dateLabel(c.dateId)} · ${t('th_queue')} #${String(c.queue).padStart(3,'0')}` : t('not_booked_yet')}</div>
           </div>
-          ${c.dateId ? `<button class="status-btn ${c.status}" data-toggle-detail="${c.studentId}">${c.status==='pending'?t('status_pending'):t('status_done')}</button>` : ''}
+          ${c.dateId ? `<button class="status-btn ${c.status}" data-toggle-detail="${c.studentId}">${statusLabel(c.status)}</button>` : ''}
         </div>
         ${receiptsHtml}
         ${c.receipts.length ? `<div class="grand-total-row"><span>${t('grand_total')}</span><span class="gt-amt mono">${fmtBaht(customerTotal(c))}</span></div>` : ''}
@@ -2055,15 +2135,10 @@ function openDetailModal(studentId){
   const toggleBtn = document.querySelector('[data-toggle-detail]');
   if(toggleBtn){
     toggleBtn.onclick = async () => {
-      const newStatus = c.status==='pending' ? 'done' : 'pending';
-      toggleBtn.disabled = true;
-      try{
-        await updateDoc(doc(db, 'bookings', c.studentId), { status: newStatus });
+      const changed = await toggleBookingStatus(c.studentId, toggleBtn);
+      if(changed){
         closeModal();
         openDetailModal(studentId);
-      }catch(e){
-        alert(t('alert_status_failed') + (e.message||''));
-        toggleBtn.disabled = false;
       }
     };
   }
@@ -2078,7 +2153,7 @@ function computePrepSummary(dateId){
   const groups = {}; // "product|||note" -> { product, note, total, bySize: {size: qty} }
   let totalItems = 0;
   let orderCount = 0;
-  customers.filter(c=>c.dateId===dateId).forEach(c=>{
+  customers.filter(c=>c.dateId===dateId && c.status!=='cancelled').forEach(c=>{
     orderCount++;
     c.receipts.forEach(r=>{
       r.items.forEach(it=>{
@@ -2315,7 +2390,7 @@ function renderReceiptModal(prefill){
           return;
         }
         await setDoc(doc(db, 'customers', studentId), { name, phone, receipts: [newReceipt] });
-        await bookPickupSlot({ dateId, studentId, name, phone });
+        await bookPickupSlotWithRetry({ dateId, studentId, name, phone });
       }
       closeModal();
     }catch(e){
@@ -2374,35 +2449,63 @@ document.getElementById('tabAdmin').onclick = () => {
 document.getElementById('langTh').onclick = () => setLang('th');
 document.getElementById('langEn').onclick = () => setLang('en');
 
-/* ---------------- Firestore live listeners ---------------- */
-onSnapshot(collection(db, 'queueCounters'), (snap)=>{
-  counterCache = {};
-  snap.forEach(d=> counterCache[d.id] = d.data());
-  if(mode==='customer' && (step===2 || step===3)) renderCustomer();
-  if(mode==='admin' && adminAuthed) renderAdmin();
-}, (err)=> console.error('queueCounters listener error', err));
+/* ---------------- Firestore data loading ----------------
+   queueCounters: PICKUP_DATES มีแค่ 3 วันคงที่ (d1, d2, d3) จึงเปิด listener แบบ "get ทีละเอกสาร"
+   ต่อวันแทนการ list ทั้ง collection — ทำให้ฝั่งสาธารณะ (ลูกค้าที่ยังไม่ login) ไม่ต้องมีสิทธิ์
+   list เลย ต้องมีแค่สิทธิ์ get ต่อเอกสารเท่านั้น ปลอดภัยกว่าเดิมมาก
+   ------------------------------------------------------------------ */
+PICKUP_DATES.forEach(({id})=>{
+  onSnapshot(doc(db, 'queueCounters', id), (docSnap)=>{
+    if(docSnap.exists()) counterCache[id] = docSnap.data();
+    else delete counterCache[id];
+    if(mode==='customer' && (step===2 || step===3)) renderCustomer();
+    if(mode==='admin' && adminAuthed) renderAdmin();
+  }, (err)=> console.error(`queueCounters/${id} listener error`, err));
+});
 
-let unsubCustomers = null;
-let unsubBookings = null;
+const ADMIN_DATA_COLLECTION_LIMIT = 2000;   // เพดานจำนวนเอกสารต่อครั้งที่อ่าน กันโควต้าพุ่งถ้าข้อมูลโตผิดปกติ
+const ADMIN_REFRESH_INTERVAL_MS = 25000;    // รีเฟรชข้อมูล admin ทุก 25 วิ แทน realtime ตลอดเวลา
+
+let adminRefreshTimer = null;
+
+async function fetchAdminData(){
+  try{
+    const [customersSnap, bookingsSnap] = await Promise.all([
+      getDocs(query(collection(db, 'customers'), limit(ADMIN_DATA_COLLECTION_LIMIT))),
+      getDocs(query(collection(db, 'bookings'), limit(ADMIN_DATA_COLLECTION_LIMIT)))
+    ]);
+    customersCache = {};
+    customersSnap.forEach(d=> customersCache[d.id] = d.data());
+    bookingsCache = {};
+    bookingsSnap.forEach(d=> bookingsCache[d.id] = d.data());
+    rebuildCustomers();
+    if(mode==='admin') renderAdmin();
+  }catch(err){
+    console.error('fetchAdminData error', err);
+  }
+}
+
+function startAdminDataPolling(){
+  stopAdminDataPolling(); // กันไม่ให้มี interval ซ้อนกันถ้าเรียกซ้ำ
+  fetchAdminData(); // โหลดทันทีตอน login/reload
+  adminRefreshTimer = setInterval(fetchAdminData, ADMIN_REFRESH_INTERVAL_MS);
+}
+
+function stopAdminDataPolling(){
+  if(adminRefreshTimer){ clearInterval(adminRefreshTimer); adminRefreshTimer = null; }
+}
+
+// เรียกฟังก์ชันนี้เองได้ทันทีหลัง admin ทำ action ที่เปลี่ยนข้อมูล (เช่นกดยืนยัน/ยกเลิก)
+// เพื่อให้เห็นผลทันทีโดยไม่ต้องรอรอบ poll ถัดไป — ไม่จำเป็นต้องแก้ตรงนี้เพิ่ม
+// เพียงแค่เรียก fetchAdminData() หลัง action นั้นๆ ถ้าต้องการความไวขึ้น
+window.__refreshAdminDataNow = fetchAdminData; // เผื่ออยากผูกกับปุ่ม Refresh เองภายหลัง
+
 onAuthStateChanged(auth, (user)=>{
   adminAuthed = !!user;
   if(user){
-    unsubCustomers = onSnapshot(collection(db, 'customers'), (snap)=>{
-      customersCache = {};
-      snap.forEach(d=> customersCache[d.id] = d.data());
-      rebuildCustomers();
-      if(mode==='admin') renderAdmin();
-    }, (err)=> console.error('customers listener error', err));
-
-    unsubBookings = onSnapshot(collection(db, 'bookings'), (snap)=>{
-      bookingsCache = {};
-      snap.forEach(d=> bookingsCache[d.id] = d.data());
-      rebuildCustomers();
-      if(mode==='admin') renderAdmin();
-    }, (err)=> console.error('bookings listener error', err));
+    startAdminDataPolling();
   } else {
-    if(unsubCustomers){ unsubCustomers(); unsubCustomers = null; }
-    if(unsubBookings){ unsubBookings(); unsubBookings = null; }
+    stopAdminDataPolling();
     customersCache = {}; bookingsCache = {}; customers = [];
   }
   if(mode==='admin') renderAdmin();
