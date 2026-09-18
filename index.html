@@ -954,7 +954,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
   getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, runTransaction,
-  serverTimestamp, collection, query, limit, onSnapshot, arrayUnion
+  serverTimestamp, collection, query, where, limit, onSnapshot, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -1524,6 +1524,7 @@ async function callPrevAtCounter(dateId, counterKey){
 
 /* ---------------- Render: customer ---------------- */
 function renderCustomer(){
+  syncQueueCounterListeners();
   const el = document.getElementById('customerView');
   const stepsHtml = `
     <div class="steps-track">
@@ -1825,6 +1826,7 @@ function renderAdminGate(){
 
 /* ---------------- Render: admin ---------------- */
 function renderAdmin(){
+  if(adminAuthed) syncQueueCounterListeners();
   if(!adminAuthed){ renderAdminGate(); return; }
   renderAdminOverview();
 }
@@ -2072,7 +2074,7 @@ function preserveFocusRegistry(inputEl){
 
 function attachAdminHandlers(){
   document.querySelectorAll('[data-rail]').forEach(item=>{
-    item.onclick = () => { adminSelectedDate = item.getAttribute('data-rail'); renderAdmin(); };
+    item.onclick = () => { adminSelectedDate = item.getAttribute('data-rail'); fetchAdminData(); };
   });
   const search = document.getElementById('adminSearchInput');
   if(search){
@@ -2450,29 +2452,60 @@ document.getElementById('langTh').onclick = () => setLang('th');
 document.getElementById('langEn').onclick = () => setLang('en');
 
 /* ---------------- Firestore data loading ----------------
-   queueCounters: PICKUP_DATES มีแค่ 3 วันคงที่ (d1, d2, d3) จึงเปิด listener แบบ "get ทีละเอกสาร"
-   ต่อวันแทนการ list ทั้ง collection — ทำให้ฝั่งสาธารณะ (ลูกค้าที่ยังไม่ login) ไม่ต้องมีสิทธิ์
-   list เลย ต้องมีแค่สิทธิ์ get ต่อเอกสารเท่านั้น ปลอดภัยกว่าเดิมมาก
+   queueCounters: แทนที่จะเปิด listener ทั้ง 3 วันค้างไว้ตลอดเวลา ให้เปิดเฉพาะวันที่
+   "กำลังจำเป็นต้องใช้จริง" ตามสถานะหน้าจอปัจจุบัน:
+     - โหมดลูกค้า ยังไม่เลือกวัน (step 1-2)  → ต้องเห็นทุกวัน (กำลังเทียบที่ว่าง)
+     - โหมดลูกค้า เลือกวันแล้ว (step 3 รอคิว) → ต้องเห็นแค่วันที่ตัวเองจองเท่านั้น
+     - โหมดแอดมิน                           → ต้องเห็นทุกวัน (ภาพรวม/สลับดูได้)
+   ฟังก์ชัน syncQueueCounterListeners() จะถูกเรียกทุกครั้งที่ render เพื่อเปิด/ปิด
+   listener ให้ตรงกับสถานะล่าสุดเสมอ ไม่เปิดเกินความจำเป็น
    ------------------------------------------------------------------ */
-PICKUP_DATES.forEach(({id})=>{
-  onSnapshot(doc(db, 'queueCounters', id), (docSnap)=>{
-    if(docSnap.exists()) counterCache[id] = docSnap.data();
-    else delete counterCache[id];
-    if(mode==='customer' && (step===2 || step===3)) renderCustomer();
-    if(mode==='admin' && adminAuthed) renderAdmin();
-  }, (err)=> console.error(`queueCounters/${id} listener error`, err));
-});
+let dateListeners = {}; // dateId -> unsubscribe function สำหรับ listener ที่เปิดอยู่ตอนนี้
+
+function neededQueueCounterDateIds(){
+  if(mode==='admin') return PICKUP_DATES.map(d=>d.id);
+  if(mode==='customer'){
+    if(step<=2 || !form.dateId) return PICKUP_DATES.map(d=>d.id); // ยังเลือก/เทียบวันอยู่ ต้องเห็นทุกวัน
+    return [form.dateId]; // เลือกแล้ว รอคิวอยู่ สนใจแค่วันตัวเอง
+  }
+  return PICKUP_DATES.map(d=>d.id);
+}
+
+function syncQueueCounterListeners(){
+  const needed = new Set(neededQueueCounterDateIds());
+  // ปิด listener ของวันที่ไม่จำเป็นแล้ว
+  Object.keys(dateListeners).forEach(id=>{
+    if(!needed.has(id)){ dateListeners[id](); delete dateListeners[id]; }
+  });
+  // เปิด listener ของวันที่จำเป็นแต่ยังไม่ได้เปิด
+  needed.forEach(id=>{
+    if(!dateListeners[id]){
+      dateListeners[id] = onSnapshot(doc(db, 'queueCounters', id), (docSnap)=>{
+        if(docSnap.exists()) counterCache[id] = docSnap.data();
+        else delete counterCache[id];
+        if(mode==='customer' && (step===2 || step===3)) renderCustomer();
+        if(mode==='admin' && adminAuthed) renderAdmin();
+      }, (err)=> console.error(`queueCounters/${id} listener error`, err));
+    }
+  });
+}
+syncQueueCounterListeners(); // เรียกครั้งแรกตอนโหลดหน้า
 
 const ADMIN_DATA_COLLECTION_LIMIT = 2000;   // เพดานจำนวนเอกสารต่อครั้งที่อ่าน กันโควต้าพุ่งถ้าข้อมูลโตผิดปกติ
-const ADMIN_REFRESH_INTERVAL_MS = 25000;    // รีเฟรชข้อมูล admin ทุก 25 วิ แทน realtime ตลอดเวลา
+const ADMIN_REFRESH_INTERVAL_MS = 60000;    // รีเฟรชข้อมูล admin ทุก 60 วิ (เดิม 25 วิ) แทน realtime ตลอดเวลา
 
 let adminRefreshTimer = null;
 
 async function fetchAdminData(){
   try{
+    // bookings: ถ้า admin กำลังดูวันใดวันหนึ่งอยู่ ดึงเฉพาะวันนั้นพอ ไม่ต้องดึงทุกวันทุกครั้ง
+    const bookingsQuery = (adminSelectedDate === 'all')
+      ? query(collection(db, 'bookings'), limit(ADMIN_DATA_COLLECTION_LIMIT))
+      : query(collection(db, 'bookings'), where('dateId', '==', adminSelectedDate), limit(ADMIN_DATA_COLLECTION_LIMIT));
+
     const [customersSnap, bookingsSnap] = await Promise.all([
       getDocs(query(collection(db, 'customers'), limit(ADMIN_DATA_COLLECTION_LIMIT))),
-      getDocs(query(collection(db, 'bookings'), limit(ADMIN_DATA_COLLECTION_LIMIT)))
+      getDocs(bookingsQuery)
     ]);
     customersCache = {};
     customersSnap.forEach(d=> customersCache[d.id] = d.data());
