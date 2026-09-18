@@ -953,8 +953,8 @@
    ============================================================================ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, runTransaction,
-  serverTimestamp, collection, query, where, limit, onSnapshot, arrayUnion
+  getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, runTransaction,
+  serverTimestamp, collection, onSnapshot, arrayUnion, query, limit
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -1523,9 +1523,15 @@ async function callPrevAtCounter(dateId, counterKey){
 }
 
 /* ---------------- Render: customer ---------------- */
-function renderCustomer(){
-  syncQueueCounterListeners();
+async function renderCustomer(){
   const el = document.getElementById('customerView');
+
+  // อ่านข้อมูลจำนวนคิวที่จองไปแล้วแบบครั้งเดียว (ไม่ใช่ realtime) เฉพาะตอน
+  // อยู่ขั้นตอนเลือกวัน — กันไม่ให้ทุกคนที่เข้าเว็บถือ listener ค้างไว้
+  if(step===2){
+    try{ await refreshCounterCacheOnce(PICKUP_DATES.map(d=>d.id)); }catch(e){ console.error(e); }
+  }
+
   const stepsHtml = `
     <div class="steps-track">
       ${[1,2,3].map((n,i)=>`
@@ -1753,7 +1759,17 @@ function attachCustomerHandlers(){
   }
   const toggleQueueBtn = document.getElementById('btnToggleQueueCheck');
   if(toggleQueueBtn){
-    toggleQueueBtn.onclick = () => { ticketShowQueueCheck = !ticketShowQueueCheck; renderCustomer(); };
+    toggleQueueBtn.onclick = async () => {
+      ticketShowQueueCheck = !ticketShowQueueCheck;
+      if(ticketShowQueueCheck){
+        // อ่านครั้งเดียวตอนกดเปิดดูเท่านั้น (ไม่ใช่ realtime) กันไม่ให้ทุกคน
+        // ที่มีใบคิวเปิดค้างไว้ถือ listener กินอ่านฟรีตลอดเวลา
+        toggleQueueBtn.disabled = true;
+        try{ await refreshCounterCacheOnce([form.dateId]); }catch(e){ console.error(e); }
+        toggleQueueBtn.disabled = false;
+      }
+      renderCustomer();
+    };
   }
   const cancelBtn = document.getElementById('btnCancelQueue');
   if(cancelBtn){
@@ -1826,7 +1842,6 @@ function renderAdminGate(){
 
 /* ---------------- Render: admin ---------------- */
 function renderAdmin(){
-  if(adminAuthed) syncQueueCounterListeners();
   if(!adminAuthed){ renderAdminGate(); return; }
   renderAdminOverview();
 }
@@ -2074,7 +2089,7 @@ function preserveFocusRegistry(inputEl){
 
 function attachAdminHandlers(){
   document.querySelectorAll('[data-rail]').forEach(item=>{
-    item.onclick = () => { adminSelectedDate = item.getAttribute('data-rail'); fetchAdminData(); };
+    item.onclick = () => { adminSelectedDate = item.getAttribute('data-rail'); renderAdmin(); };
   });
   const search = document.getElementById('adminSearchInput');
   if(search){
@@ -2451,106 +2466,67 @@ document.getElementById('tabAdmin').onclick = () => {
 document.getElementById('langTh').onclick = () => setLang('th');
 document.getElementById('langEn').onclick = () => setLang('en');
 
-/* ---------------- Firestore data loading ----------------
-   queueCounters: แทนที่จะเปิด listener ทั้ง 3 วันค้างไว้ตลอดเวลา ให้เปิดเฉพาะวันที่
-   "กำลังจำเป็นต้องใช้จริง" ตามสถานะหน้าจอปัจจุบัน:
-     - โหมดลูกค้า ยังไม่เลือกวัน (step 1-2)  → ต้องเห็นทุกวัน (กำลังเทียบที่ว่าง)
-     - โหมดลูกค้า เลือกวันแล้ว (step 3 รอคิว) → ต้องเห็นแค่วันที่ตัวเองจองเท่านั้น
-     - โหมดแอดมิน                           → ต้องเห็นทุกวัน (ภาพรวม/สลับดูได้)
-   ฟังก์ชัน syncQueueCounterListeners() จะถูกเรียกทุกครั้งที่ render เพื่อเปิด/ปิด
-   listener ให้ตรงกับสถานะล่าสุดเสมอ ไม่เปิดเกินความจำเป็น
-   ------------------------------------------------------------------ */
-let dateListeners = {}; // dateId -> unsubscribe function สำหรับ listener ที่เปิดอยู่ตอนนี้
+/* ---------------- Firestore live listeners ---------------- */
+/* ============================================================================
+   ⚠️ สำคัญมาก — เรื่อง Firestore read quota
+   ============================================================================
+   ห้ามเปิด onSnapshot (realtime listener) แบบไม่มีเงื่อนไขให้ "ทุกคนที่เข้า
+   เว็บ" อีกเด็ดขาด เพราะฝั่งลูกค้าอาจมีคนเปิดพร้อมกันหลายร้อยคน ถ้าทุกคน
+   ถือ listener ค้างไว้ ทุกครั้งที่มีคน "เขียน" ข้อมูล 1 ครั้ง (เช่น จองคิว)
+   จะเกิดการ "อ่าน" ขึ้นกับผู้ฟังทุกคนที่เปิดค้างอยู่ ณ ขณะนั้นทันที
+   (1 เขียน x N คนที่เปิดเว็บ = N อ่าน) จนทำให้ quota หมดเร็วมาก แม้จำนวน
+   ผู้ใช้จริงจะไม่มากก็ตาม — เกิดเหตุนี้มาแล้วครั้งหนึ่ง (อ่านทะลุ 72,000
+   ใน 1 วันจากยอด free tier 50,000)
 
-function neededQueueCounterDateIds(){
-  if(mode==='admin') return PICKUP_DATES.map(d=>d.id);
-  if(mode==='customer'){
-    if(step<=2 || !form.dateId) return PICKUP_DATES.map(d=>d.id); // ยังเลือก/เทียบวันอยู่ ต้องเห็นทุกวัน
-    return [form.dateId]; // เลือกแล้ว รอคิวอยู่ สนใจแค่วันตัวเอง
-  }
-  return PICKUP_DATES.map(d=>d.id);
-}
+   กฎที่ใช้จากนี้:
+   - ฝั่งลูกค้า (จำนวนคนมาก, ไม่คาดเดาได้) ใช้ getDoc/getDocs (อ่านครั้งเดียว
+     ตอนต้องใช้จริงๆ) เท่านั้น ห้ามใช้ onSnapshot เด็ดขาด
+   - ฝั่งแอดมิน (จำนวนคนน้อย, ล็อกอินแล้วเท่านั้น) ยังใช้ onSnapshot ได้
+     เพื่อความเรียลไทม์ตอนทำงานหน้างาน แต่ต้อง unsubscribe ทุกครั้งที่
+     ล็อกเอาต์ และใส่ limit() กันไว้เผื่อข้อมูลโตเกินคาด
+   ============================================================================ */
 
-function syncQueueCounterListeners(){
-  const needed = new Set(neededQueueCounterDateIds());
-  // ปิด listener ของวันที่ไม่จำเป็นแล้ว
-  Object.keys(dateListeners).forEach(id=>{
-    if(!needed.has(id)){ dateListeners[id](); delete dateListeners[id]; }
-  });
-  // เปิด listener ของวันที่จำเป็นแต่ยังไม่ได้เปิด
-  needed.forEach(id=>{
-    if(!dateListeners[id]){
-      dateListeners[id] = onSnapshot(doc(db, 'queueCounters', id), (docSnap)=>{
-        if(docSnap.exists()) counterCache[id] = docSnap.data();
-        else delete counterCache[id];
-        if(mode==='customer' && (step===2 || step===3)) renderCustomer();
-        if(mode==='admin' && adminAuthed) renderAdmin();
-      }, (err)=> console.error(`queueCounters/${id} listener error`, err));
-    }
+/* ---------------- อ่านข้อมูล queueCounters แบบครั้งเดียว (ฝั่งลูกค้า) ---------------- */
+async function refreshCounterCacheOnce(dateIds){
+  const results = await Promise.all(dateIds.map(id=>getDoc(doc(db, 'queueCounters', id))));
+  dateIds.forEach((id,i)=>{
+    counterCache[id] = results[i].exists() ? results[i].data() : {};
   });
 }
-syncQueueCounterListeners(); // เรียกครั้งแรกตอนโหลดหน้า
 
-const ADMIN_DATA_COLLECTION_LIMIT = 2000;   // เพดานจำนวนเอกสารต่อครั้งที่อ่าน กันโควต้าพุ่งถ้าข้อมูลโตผิดปกติ
-const ADMIN_REFRESH_INTERVAL_MS = 60000;    // รีเฟรชข้อมูล admin ทุก 60 วิ (เดิม 25 วิ) แทน realtime ตลอดเวลา
-
-let adminRefreshTimer = null;
-
-async function fetchAdminData(){
-  try{
-    // bookings: ถ้า admin กำลังดูวันใดวันหนึ่งอยู่ ดึงเฉพาะวันนั้นพอ ไม่ต้องดึงทุกวันทุกครั้ง
-    const bookingsQuery = (adminSelectedDate === 'all')
-      ? query(collection(db, 'bookings'), limit(ADMIN_DATA_COLLECTION_LIMIT))
-      : query(collection(db, 'bookings'), where('dateId', '==', adminSelectedDate), limit(ADMIN_DATA_COLLECTION_LIMIT));
-
-    const [customersSnap, bookingsSnap] = await Promise.all([
-      getDocs(query(collection(db, 'customers'), limit(ADMIN_DATA_COLLECTION_LIMIT))),
-      getDocs(bookingsQuery)
-    ]);
-    customersCache = {};
-    customersSnap.forEach(d=> customersCache[d.id] = d.data());
-    bookingsCache = {};
-    bookingsSnap.forEach(d=> bookingsCache[d.id] = d.data());
-    rebuildCustomers();
-    if(mode==='admin') renderAdmin();
-  }catch(err){
-    console.error('fetchAdminData error', err);
-  }
-}
-
-function startAdminDataPolling(){
-  stopAdminDataPolling(); // กันไม่ให้มี interval ซ้อนกันถ้าเรียกซ้ำ
-  fetchAdminData(); // โหลดทันทีตอน login/reload
-  adminRefreshTimer = setInterval(()=>{
-    if(document.hidden) return; // แท็บถูกซ่อน/สลับไปแท็บอื่น/minimize → ข้ามรอบนี้ ไม่อ่านข้อมูลทิ้งเปล่าๆ
-    fetchAdminData();
-  }, ADMIN_REFRESH_INTERVAL_MS);
-}
-
-// เมื่อสลับกลับมาที่แท็บนี้อีกครั้งหลังจากถูกซ่อนไว้ ให้ดึงข้อมูลใหม่ทันที 1 ครั้ง
-// (ไม่ต้องรอครบรอบ 25 วิ) เพื่อให้ admin เห็นข้อมูลล่าสุดทันทีที่กลับมาดู
-document.addEventListener('visibilitychange', ()=>{
-  if(!document.hidden && adminAuthed && adminRefreshTimer){
-    fetchAdminData();
-  }
-});
-
-function stopAdminDataPolling(){
-  if(adminRefreshTimer){ clearInterval(adminRefreshTimer); adminRefreshTimer = null; }
-}
-
-// เรียกฟังก์ชันนี้เองได้ทันทีหลัง admin ทำ action ที่เปลี่ยนข้อมูล (เช่นกดยืนยัน/ยกเลิก)
-// เพื่อให้เห็นผลทันทีโดยไม่ต้องรอรอบ poll ถัดไป — ไม่จำเป็นต้องแก้ตรงนี้เพิ่ม
-// เพียงแค่เรียก fetchAdminData() หลัง action นั้นๆ ถ้าต้องการความไวขึ้น
-window.__refreshAdminDataNow = fetchAdminData; // เผื่ออยากผูกกับปุ่ม Refresh เองภายหลัง
-
+let unsubCustomers = null;
+let unsubBookings = null;
+let unsubQueueCounters = null;
 onAuthStateChanged(auth, (user)=>{
   adminAuthed = !!user;
   if(user){
-    startAdminDataPolling();
+    unsubCustomers = onSnapshot(query(collection(db, 'customers'), limit(2000)), (snap)=>{
+      customersCache = {};
+      snap.forEach(d=> customersCache[d.id] = d.data());
+      rebuildCustomers();
+      if(mode==='admin') renderAdmin();
+    }, (err)=> console.error('customers listener error', err));
+
+    unsubBookings = onSnapshot(query(collection(db, 'bookings'), limit(2000)), (snap)=>{
+      bookingsCache = {};
+      snap.forEach(d=> bookingsCache[d.id] = d.data());
+      rebuildCustomers();
+      if(mode==='admin') renderAdmin();
+    }, (err)=> console.error('bookings listener error', err));
+
+    // queueCounters เรียลไทม์ให้เฉพาะแอดมินที่ล็อกอินแล้วเท่านั้น (จำนวน
+    // คนน้อย ปลอดภัยต่อ quota) — ฝั่งลูกค้าใช้ refreshCounterCacheOnce()
+    // แบบอ่านครั้งเดียวแทนแล้ว ไม่มี listener ค้างอีก
+    unsubQueueCounters = onSnapshot(query(collection(db, 'queueCounters'), limit(10)), (snap)=>{
+      counterCache = {};
+      snap.forEach(d=> counterCache[d.id] = d.data());
+      if(mode==='admin') renderAdmin();
+    }, (err)=> console.error('queueCounters listener error', err));
   } else {
-    stopAdminDataPolling();
-    customersCache = {}; bookingsCache = {}; customers = [];
+    if(unsubCustomers){ unsubCustomers(); unsubCustomers = null; }
+    if(unsubBookings){ unsubBookings(); unsubBookings = null; }
+    if(unsubQueueCounters){ unsubQueueCounters(); unsubQueueCounters = null; }
+    customersCache = {}; bookingsCache = {}; customers = []; counterCache = {};
   }
   if(mode==='admin') renderAdmin();
 });
